@@ -110,7 +110,7 @@ router.use(function(req, res, next) {
 
   var options = {
     headers: headers,
-    data: req.body
+    data: JSON.stringify(req.body)
   }
 
   client.registerMethod("CALL", TARGETURI + req.url, req.method);
