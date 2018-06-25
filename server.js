@@ -9,18 +9,19 @@ var express = require('express')
   , log = require('npmlog-ts')
   , _ = require('lodash')
   , cors = require('cors')
+  , isJSON = require('is-valid-json')
+  , uuidv4 = require('uuid/v4')
 ;
 
-const DBHOST  = "https://new.apex.digitalpracticespain.com";
-const GET     = 'GET';
-const POST    = 'POST';
-const PUT     = 'PUT';
-const DELETE  = 'DELETE';
+const DBHOST  = "https://apex.digitalpracticespain.com";
 const URI     = '/';
 
 // Custom headers
-const WEDOTARGET = 'wedo-target'
-    , WEDONGROK  = 'wedo-ngrok-proxy'
+const WEDOTARGET          = 'wedo-target'
+    , WEDONGROKPROXY      = 'wedo-ngrok-proxy'
+    , WEDONGROKDEMOZONE   = 'wedo-ngrok-demozone'
+    , WEDONGROKSERVER     = 'wedo-ngrok-server'
+    , WEDONGROKCOMPONENT  = 'wedo-ngrok-component'
 ;
 
 log.stream = process.stdout;
@@ -30,16 +31,11 @@ log.level = 'verbose';
 // Instantiate classes & servers
 var app    = express()
   , router = express.Router()
-/**
-  , osaClient = restify.createJsonClient({
-    url: OSAHOST,
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-**/
   , server = http.createServer(app)
 ;
+
+// We do accept self-signed certificates
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // ************************************************************************
 // Main code STARTS HERE !!
@@ -81,45 +77,79 @@ router.use(function(req, res, next) {
   // req.method
   // req.body
 
-/**
-  console.log(util.inspect(req.headers, true, null));
-  console.log(util.inspect(req.url, true, null));
-  console.log(util.inspect(req.method, true, null));
-  console.log(util.inspect(req.body, true, null));
-**/
-
   // Get our custom headers before removing them
-  const TARGETURI = req.headers[WEDOTARGET];
+  const HEADERWEDOTARGET = req.headers[WEDOTARGET]
+      , HEADERWEDONGROKPROXY = req.headers[WEDONGROKPROXY]
+      , HEADERWEDONGROKDEMOZONE = req.headers[WEDONGROKDEMOZONE]
+      , HEADERWEDONGROKSERVER = req.headers[WEDONGROKSERVER]
+      , HEADERWEDONGROKCOMPONENT = req.headers[WEDONGROKCOMPONENT]
+  ;
 
-  if (!TARGETURI) {
-    res.status(400).send("wedo-target header not set");
-    res.end();
-    return;
-  }
-
-  log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, TARGETURI, req.url);
-
-  var customHeaders = {};
-  customHeaders[WEDOTARGET] = null;
-  customHeaders[WEDONGROK] = null;
+  var customHeaders = { host: null };
+  customHeaders[WEDOTARGET]         = null;
+  customHeaders[WEDONGROKPROXY]     = null;
+  customHeaders[WEDONGROKDEMOZONE]  = null;
+  customHeaders[WEDONGROKSERVER]    = null;
+  customHeaders[WEDONGROKCOMPONENT] = null;
 
   var headers = _.clone(req.headers);
+  // Remove custom headers before forwarding them to the target service
   headers = _.omit(headers, _.keys(customHeaders));
 
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
   var options = {
-    headers: headers,
-    data: JSON.stringify(req.body)
+    headers: headers
   }
 
-  client.registerMethod("CALL", TARGETURI + req.url, req.method);
-  client.methods.CALL(options, function (data, response) {
-    var responseHeader = response.header;
-    res.status(response.statusCode).send(data);
-    res.end();
-  });
+  if (req.body) {
+      options.data = (isJSON(req.body)) ? JSON.stringify(req.body) : req.body;
+  }
 
+  if (HEADERWEDONGROKPROXY && HEADERWEDONGROKDEMOZONE && HEADERWEDONGROKSERVER && HEADERWEDONGROKCOMPONENT) {
+    // All NGROK headers are present, we presume we first need to obtain the current/latest NGROK URL
+    log.info("", "Incoming request with verb: %s, NGROK params (%s, %s, %s, %s), url: %s", req.method, HEADERWEDONGROKPROXY, HEADERWEDONGROKDEMOZONE, HEADERWEDONGROKSERVER, HEADERWEDONGROKCOMPONENT, req.url);
+    var args = {
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      path: { "demozone": HEADERWEDONGROKDEMOZONE, "server": HEADERWEDONGROKSERVER, "component": HEADERWEDONGROKCOMPONENT }
+    };
+    client.get(HEADERWEDONGROKPROXY + '/${demozone}/${server}/${component}', args, (data, response) => {
+      if (!isJSON(data) || !data.urlhttp) {
+        var message = "No NGROK data found for: " + response.responseUrl;
+        res.status(400).send(message);
+        res.end();
+        return;
+      }
+      log.info("", "Redirecting to NGROK URL: %s (last updated on %s)", data.urlhttp, data.lastupdate);
+      log.verbose("", "Invoking [%s] final URL: %s", req.method, data.urlhttp + req.url);
+      log.verbose("", "Options: %j", options);
+      var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
+      client.registerMethod(uniqueMethod, data.urlhttp + req.url, req.method);
+      client.methods[uniqueMethod](options, (_data, _response) => {
+        var responseHeader = _response.header;
+        res.status(_response.statusCode).send(_data);
+        res.end();
+        log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
+        client.unregisterMethod(uniqueMethod);
+      });
+    });
+  } else {
+    if (!HEADERWEDOTARGET) {
+      var message = "Invalid request with no custom headers!. Ignoring.";
+      log.error("", message);
+      res.status(400).send(message);
+      res.end();
+      return;
+    }
+    log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, HEADERWEDOTARGET, req.url);
+    var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
+    client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
+    client.methods[uniqueMethod](options, (data, response) => {
+      var responseHeader = response.header;
+      res.status(response.statusCode).send(data);
+      res.end();
+      log.verbose("", "Request ended with a HTTP %d", response.statusCode);
+      client.unregisterMethod(uniqueMethod);
+    });
+  }
 });
 
 app.use(URI, router);
@@ -127,5 +157,5 @@ app.use(URI, router);
 // REST stuff - END
 
 server.listen(PORT, () => {
-  log.info("","Listening for any request at http://localhost:%s%s/*", PORT, URI);
+  log.info("","Listening for any request at http://localhost:%s%s*", PORT, URI);
 });
