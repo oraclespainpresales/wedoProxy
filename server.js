@@ -124,7 +124,9 @@ router.use(function(req, res, next) {
       var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
       client.registerMethod(uniqueMethod, data.urlhttp + req.url, req.method);
       client.methods[uniqueMethod](options, (_data, _response) => {
-        var responseHeader = _response.header;
+        var responseHeaders = _response.headers;
+        console.log(_response);
+        res.set(responseHeaders);
         res.status(_response.statusCode).send(_data);
         res.end();
         log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
@@ -143,7 +145,9 @@ router.use(function(req, res, next) {
     var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
     client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
     client.methods[uniqueMethod](options, (data, response) => {
-      var responseHeader = response.header;
+      var responseHeaders = response.headers;
+      console.log(responseHeaders);
+      res.set(responseHeaders);
       res.status(response.statusCode).send(data);
       res.end();
       log.verbose("", "Request ended with a HTTP %d", response.statusCode);
