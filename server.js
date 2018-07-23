@@ -24,6 +24,11 @@ const WEDOTARGET          = 'wedo-target'
     , WEDONGROKCOMPONENT  = 'wedo-ngrok-component'
 ;
 
+// Response headers blacklist
+const HEADERS_BLCAKLIST = [
+  'transfer-encoding'
+];
+
 log.stream = process.stdout;
 log.timestamp = true;
 log.level = 'verbose';
@@ -124,8 +129,11 @@ router.use(function(req, res, next) {
       var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
       client.registerMethod(uniqueMethod, data.urlhttp + req.url, req.method);
       client.methods[uniqueMethod](options, (_data, _response) => {
-        var responseHeaders = _response.headers;
-        console.log(_response);
+        var responseHeaders = response.headers;
+        _.forEach(HEADERS_BLCAKLIST, (h) => {
+          delete responseHeaders[h];
+        });
+  //      log.verbose("", util.inspect(responseHeaders, true, null));
         res.set(responseHeaders);
         res.status(_response.statusCode).send(_data);
         res.end();
@@ -135,7 +143,7 @@ router.use(function(req, res, next) {
     });
   } else {
     if (!HEADERWEDOTARGET) {
-      var message = "Invalid request with no custom headers!. Ignoring.";
+      var message = "Invalid request with no custom headers!. Ignoring: " + req.url;
       log.error("", message);
       res.status(400).send(message);
       res.end();
@@ -146,7 +154,10 @@ router.use(function(req, res, next) {
     client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
     client.methods[uniqueMethod](options, (data, response) => {
       var responseHeaders = response.headers;
-      console.log(responseHeaders);
+      _.forEach(HEADERS_BLCAKLIST, (h) => {
+        delete responseHeaders[h];
+      });
+//      log.verbose("", util.inspect(responseHeaders, true, null));
       res.set(responseHeaders);
       res.status(response.statusCode).send(data);
       res.end();
