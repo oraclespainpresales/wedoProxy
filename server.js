@@ -109,49 +109,16 @@ router.use(function(req, res, next) {
       options.data = (isJSON(req.body)) ? JSON.stringify(req.body) : req.body;
   }
 
-  if (HEADERWEDONGROKPROXY && HEADERWEDONGROKDEMOZONE && HEADERWEDONGROKSERVER && HEADERWEDONGROKCOMPONENT) {
-    // All NGROK headers are present, we presume we first need to obtain the current/latest NGROK URL
-    log.info("", "Incoming request with verb: %s, NGROK params (%s, %s, %s, %s), url: %s", req.method, HEADERWEDONGROKPROXY, HEADERWEDONGROKDEMOZONE, HEADERWEDONGROKSERVER, HEADERWEDONGROKCOMPONENT, req.url);
-    var args = {
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      path: { "demozone": HEADERWEDONGROKDEMOZONE, "server": HEADERWEDONGROKSERVER, "component": HEADERWEDONGROKCOMPONENT }
-    };
-    client.get(HEADERWEDONGROKPROXY + '/${demozone}/${server}/${component}', args, (data, response) => {
-      if (!isJSON(data) || !data.urlhttp) {
-        var message = "No NGROK data found for: " + response.responseUrl;
-        res.status(400).send(message);
-        res.end();
-        return;
-      }
-      log.info("", "Redirecting to NGROK URL: %s (last updated on %s)", data.urlhttp, data.lastupdate);
-      log.verbose("", "Invoking [%s] final URL: %s", req.method, data.urlhttp + req.url);
-      log.verbose("", "Options: %j", options);
-      var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
-      client.registerMethod(uniqueMethod, data.urlhttp + req.url, req.method);
-      client.methods[uniqueMethod](options, (_data, _response) => {
-        var responseHeaders = response.headers;
-        _.forEach(HEADERS_BLCAKLIST, (h) => {
-          delete responseHeaders[h];
-        });
-  //      log.verbose("", util.inspect(responseHeaders, true, null));
-        res.set(responseHeaders);
-        res.status(_response.statusCode).send(_data);
-        res.end();
-        log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
-        client.unregisterMethod(uniqueMethod);
-      });
-    });
-  } else {
-    if (!HEADERWEDOTARGET) {
-      var message = "Invalid request with no custom headers!. Ignoring: " + req.url;
-      log.error("", message);
-      res.status(400).send(message);
-      res.end();
-      return;
-    }
-    log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, HEADERWEDOTARGET, req.url);
+  var urlElements = req.url.split("/");
+  if (urlElements[1] == "proxy" ) {
+    var protocol = urlElements[2];
+    var target = urlElements[3];
+    var uri = req.url.substring(req.url.indexOf(target) + target.length);
+
+
+    log.info("", "Incoming PROXY request with verb: %s, target: %s, uri: %s", req.method, protocol + "://" + target, uri);
     var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
-    client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
+    client.registerMethod(uniqueMethod, protocol + "://" + target + uri, req.method);
     client.methods[uniqueMethod](options, (data, response) => {
       var responseHeaders = response.headers;
       _.forEach(HEADERS_BLCAKLIST, (h) => {
@@ -164,6 +131,63 @@ router.use(function(req, res, next) {
       log.verbose("", "Request ended with a HTTP %d", response.statusCode);
       client.unregisterMethod(uniqueMethod);
     });
+  } else {
+    if (HEADERWEDONGROKPROXY && HEADERWEDONGROKDEMOZONE && HEADERWEDONGROKSERVER && HEADERWEDONGROKCOMPONENT) {
+      // All NGROK headers are present, we presume we first need to obtain the current/latest NGROK URL
+      log.info("", "Incoming request with verb: %s, NGROK params (%s, %s, %s, %s), url: %s", req.method, HEADERWEDONGROKPROXY, HEADERWEDONGROKDEMOZONE, HEADERWEDONGROKSERVER, HEADERWEDONGROKCOMPONENT, req.url);
+      var args = {
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        path: { "demozone": HEADERWEDONGROKDEMOZONE, "server": HEADERWEDONGROKSERVER, "component": HEADERWEDONGROKCOMPONENT }
+      };
+      client.get(HEADERWEDONGROKPROXY + '/${demozone}/${server}/${component}', args, (data, response) => {
+        if (!isJSON(data) || !data.urlhttp) {
+          var message = "No NGROK data found for: " + response.responseUrl;
+          res.status(400).send(message);
+          res.end();
+          return;
+        }
+        log.info("", "Redirecting to NGROK URL: %s (last updated on %s)", data.urlhttp, data.lastupdate);
+        log.verbose("", "Invoking [%s] final URL: %s", req.method, data.urlhttp + req.url);
+        log.verbose("", "Options: %j", options);
+        var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
+        client.registerMethod(uniqueMethod, data.urlhttp + req.url, req.method);
+        client.methods[uniqueMethod](options, (_data, _response) => {
+          var responseHeaders = response.headers;
+          _.forEach(HEADERS_BLCAKLIST, (h) => {
+            delete responseHeaders[h];
+          });
+    //      log.verbose("", util.inspect(responseHeaders, true, null));
+          res.set(responseHeaders);
+          res.status(_response.statusCode).send(_data);
+          res.end();
+          log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
+          client.unregisterMethod(uniqueMethod);
+        });
+      });
+    } else {
+      if (!HEADERWEDOTARGET) {
+        var message = "Invalid request with no custom headers!. Ignoring: " + req.url;
+        log.error("", message);
+        res.status(200).send({ error: message });
+        res.end();
+        return;
+      }
+      log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, HEADERWEDOTARGET, req.url);
+      var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
+      client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
+      client.methods[uniqueMethod](options, (data, response) => {
+        var responseHeaders = response.headers;
+        _.forEach(HEADERS_BLCAKLIST, (h) => {
+          delete responseHeaders[h];
+        });
+  //      log.verbose("", util.inspect(responseHeaders, true, null));
+        res.set(responseHeaders);
+        res.status(response.statusCode).send(data);
+        res.end();
+        log.verbose("", "Request ended with a HTTP %d", response.statusCode);
+        client.unregisterMethod(uniqueMethod);
+      });
+    }
   }
 });
 
