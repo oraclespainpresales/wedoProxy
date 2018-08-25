@@ -156,9 +156,14 @@ router.use(function(req, res, next) {
           _.forEach(HEADERS_BLCAKLIST, (h) => {
             delete responseHeaders[h];
           });
-    //      log.verbose("", util.inspect(responseHeaders, true, null));
           res.set(responseHeaders);
-          res.status(_response.statusCode).send(_data);
+          // Not sure if incoming data is a valid JSON or not:
+          try {
+            JSON.parse(_data);
+            res.status(_response.statusCode).send(_data);
+          } catch (e) {
+            res.status(_response.statusCode).send({ result: _data.toString()});
+          }
           res.end();
           log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
           client.unregisterMethod(uniqueMethod);
