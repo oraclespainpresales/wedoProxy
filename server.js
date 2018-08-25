@@ -187,7 +187,14 @@ router.use(function(req, res, next) {
         });
   //      log.verbose("", util.inspect(responseHeaders, true, null));
         res.set(responseHeaders);
-        res.status(response.statusCode).send(data);
+        // Not sure if incoming data is a valid JSON or not:
+        try {
+          JSON.parse(_data);
+          res.status(response.statusCode).send(data);
+        } catch (e) {
+          res.status(response.statusCode).send({ result: data.toString()});
+        }
+//        res.status(response.statusCode).send(data);
         res.end();
         log.verbose("", "Request ended with a HTTP %d", response.statusCode);
         client.unregisterMethod(uniqueMethod);
