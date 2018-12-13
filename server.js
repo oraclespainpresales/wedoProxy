@@ -2,10 +2,11 @@
 
 // Module imports
 var express = require('express')
-  , http = require('http')
+  , https = require('https')
   , Client = require('node-rest-client').Client
   , bodyParser = require('body-parser')
   , util = require('util')
+  , fs = require("fs")
   , log = require('npmlog-ts')
   , _ = require('lodash')
   , cors = require('cors')
@@ -13,7 +14,7 @@ var express = require('express')
   , uuidv4 = require('uuid/v4')
 ;
 
-const DBHOST  = "https://apex.digitalpracticespain.com";
+const DBHOST  = "https://apex.wedoteam.io";
 const URI     = '/';
 
 // Custom headers
@@ -34,9 +35,14 @@ log.timestamp = true;
 log.level = 'verbose';
 
 // Instantiate classes & servers
+const options = {
+  key: fs.readFileSync("/u01/ssl/privkey.pem"),
+  cert: fs.readFileSync("/u01/ssl/fullchain.pem")
+};
+
 var app    = express()
   , router = express.Router()
-  , server = http.createServer(app)
+  , server = https.createServer(options, app)
 ;
 
 // We do accept self-signed certificates
@@ -61,12 +67,16 @@ process.on('SIGINT', function() {
 // Main handlers registration - END
 
 // REST engine initial setup
+const PORT = 1443;
+
+/**
 const PORT = process.env.PORT;
 
 if (!PORT) {
   log.error("", "PORT environment variable not set. Aborting.");
   process.exit(-1);
 }
+**/
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -158,11 +168,11 @@ router.use(function(req, res, next) {
           });
           res.set(responseHeaders);
           // Not sure if incoming data is a valid JSON or not:
-          try {
-            JSON.parse(_data);
-            res.status(_response.statusCode).send(_data);
-          } catch (e) {
+          var isObject = (Object.getPrototypeOf( _data ) === Object.prototype);
+          if (!isObject) {
             res.status(_response.statusCode).send({ result: _data.toString()});
+          } else {
+            res.status(_response.statusCode).send(_data);
           }
           res.end();
           log.verbose("", "Request ended with a HTTP %d", _response.statusCode);
@@ -185,16 +195,14 @@ router.use(function(req, res, next) {
         _.forEach(HEADERS_BLCAKLIST, (h) => {
           delete responseHeaders[h];
         });
-  //      log.verbose("", util.inspect(responseHeaders, true, null));
         res.set(responseHeaders);
         // Not sure if incoming data is a valid JSON or not:
-        try {
-          JSON.parse(_data);
-          res.status(response.statusCode).send(data);
-        } catch (e) {
+        var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
+        if (!isObject) {
           res.status(response.statusCode).send({ result: data.toString()});
+        } else {
+          res.status(response.statusCode).send(data);
         }
-//        res.status(response.statusCode).send(data);
         res.end();
         log.verbose("", "Request ended with a HTTP %d", response.statusCode);
         client.unregisterMethod(uniqueMethod);
@@ -208,5 +216,5 @@ app.use(URI, router);
 // REST stuff - END
 
 server.listen(PORT, () => {
-  log.info("","Listening for any request at http://localhost:%s%s*", PORT, URI);
+  log.info("","Listening for any request at https://localhost:%s%s*", PORT, URI);
 });
