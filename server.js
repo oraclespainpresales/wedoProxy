@@ -43,7 +43,7 @@ const options = {
 **/
 const options = {
   key: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_privatekey.csr"),
-  cert: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_certificate.csr")
+  pfx: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_certificate.csr")
 };
 
 
