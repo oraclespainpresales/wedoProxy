@@ -35,10 +35,17 @@ log.timestamp = true;
 log.level = 'verbose';
 
 // Instantiate classes & servers
+/**
 const options = {
   key: fs.readFileSync("/u01/ssl/privkey.pem"),
   cert: fs.readFileSync("/u01/ssl/fullchain.pem")
 };
+**/
+const options = {
+  key: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_privatekey.csr"),
+  cert: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_certificate.csr")
+};
+
 
 var app    = express()
   , router = express.Router()
