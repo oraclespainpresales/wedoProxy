@@ -42,8 +42,8 @@ const options = {
 };
 **/
 const options = {
-  key: fs.readFileSync("/u01/ssl/certificate.crt").toString(),
-  cert: fs.readFileSync("/u01/ssl/privatekey.crt").toString()
+  key: fs.readFileSync("/u01/ssl/certificate.ca.crt").toString(),
+  cert: fs.readFileSync("/u01/ssl/certificate.key").toString()
 };
 
 
