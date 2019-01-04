@@ -42,8 +42,8 @@ const options = {
 };
 **/
 const options = {
-  key: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_privatekey.csr").toString(),
-  cert: fs.readFileSync("/u01/ssl/comodo_infra.wedoteam.io_certificate.csr").toString()
+  key: fs.readFileSync("/u01/ssl/certificate.crt").toString(),
+  cert: fs.readFileSync("/u01/ssl/privatekey.crt").toString()
 };
 
 
