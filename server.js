@@ -194,11 +194,14 @@ router.use(function(req, res, next) {
         return;
       }
       log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, HEADERWEDOTARGET, req.url);
+      console.log("***1");
       var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
+      console.log("***2");
       client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
+      console.log("***3");
       try {
         client.methods[uniqueMethod](options, (data, response) => {
-          console.log("***1");
+          console.log("***4");
           var responseHeaders = response.headers;
           _.forEach(HEADERS_BLCAKLIST, (h) => {
             delete responseHeaders[h];
