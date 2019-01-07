@@ -41,16 +41,9 @@ const options = {
   cert: fs.readFileSync("/u01/ssl/fullchain.pem")
 };
 **/
-/**
 const options = {
   cert: fs.readFileSync("/u01/ssl/certificate.fullchain.crt").toString(),
   key: fs.readFileSync("/u01/ssl/certificate.key").toString()
-};
-**/
-
-const options = {
-  cert: fs.readFileSync("/u01/ssl/infra.wedoteam.io.fullchain.pem").toString(),
-  key: fs.readFileSync("/u01/ssl/infra.wedoteam.io.key").toString()
 };
 
 var app    = express()
@@ -119,8 +112,6 @@ router.use(function(req, res, next) {
   customHeaders[WEDONGROKDEMOZONE]  = null;
   customHeaders[WEDONGROKSERVER]    = null;
   customHeaders[WEDONGROKCOMPONENT] = null;
-
-  console.log(util.inspect(req.headers, true, null));
 
   var headers = _.clone(req.headers);
   // Remove custom headers before forwarding them to the target service
