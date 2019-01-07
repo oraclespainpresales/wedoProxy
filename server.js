@@ -200,7 +200,7 @@ router.use(function(req, res, next) {
       client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
       console.log("***3");
       try {
-        client.methods[uniqueMethod](options, (data, response) => {
+        client.methods[uniqueMethod](options, function(data, response) {
           console.log("***4");
           var responseHeaders = response.headers;
           _.forEach(HEADERS_BLCAKLIST, (h) => {
