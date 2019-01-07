@@ -53,8 +53,6 @@ const options = {
   key: fs.readFileSync("/u01/ssl/infra.wedoteam.io.key").toString()
 };
 
-console.log(options);
-
 var app    = express()
   , router = express.Router()
   , server = https.createServer(options, app)
