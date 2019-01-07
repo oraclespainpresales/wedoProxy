@@ -2,7 +2,6 @@
 
 // Module imports
 var express = require('express')
-  , http = require('http')
   , https = require('https')
   , Client = require('node-rest-client').Client
   , bodyParser = require('body-parser')
@@ -48,10 +47,11 @@ const options = {
 };
 
 
+console.log(options);
+
 var app    = express()
   , router = express.Router()
-//  , server = https.createServer(options, app)
-  , server = http.createServer(app)
+  , server = https.createServer(options, app)
 ;
 
 // We do accept self-signed certificates
