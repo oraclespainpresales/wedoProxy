@@ -114,6 +114,8 @@ router.use(function(req, res, next) {
   customHeaders[WEDONGROKSERVER]    = null;
   customHeaders[WEDONGROKCOMPONENT] = null;
 
+  console.log(util.inspect(req.headers, true, null));
+
   var headers = _.clone(req.headers);
   // Remove custom headers before forwarding them to the target service
   headers = _.omit(headers, _.keys(customHeaders));
