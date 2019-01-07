@@ -41,11 +41,17 @@ const options = {
   cert: fs.readFileSync("/u01/ssl/fullchain.pem")
 };
 **/
+/**
 const options = {
   cert: fs.readFileSync("/u01/ssl/certificate.fullchain.crt").toString(),
   key: fs.readFileSync("/u01/ssl/certificate.key").toString()
 };
+**/
 
+const options = {
+  cert: fs.readFileSync("/u01/ssl/infra.wedoteam.io.fullchain.pem").toString(),
+  key: fs.readFileSync("/u01/ssl/infra.wedoteam.io.key").toString()
+};
 
 console.log(options);
 
