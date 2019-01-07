@@ -196,23 +196,29 @@ router.use(function(req, res, next) {
       log.info("", "Incoming request with verb: %s, target: %s, url: %s", req.method, HEADERWEDOTARGET, req.url);
       var uniqueMethod = uuidv4();  // Just in case we're serving concurrent requests
       client.registerMethod(uniqueMethod, HEADERWEDOTARGET + req.url, req.method);
-      client.methods[uniqueMethod](options, (data, response) => {
-        var responseHeaders = response.headers;
-        _.forEach(HEADERS_BLCAKLIST, (h) => {
-          delete responseHeaders[h];
+      try {
+        client.methods[uniqueMethod](options, (data, response) => {
+          console.log("***1");
+          var responseHeaders = response.headers;
+          _.forEach(HEADERS_BLCAKLIST, (h) => {
+            delete responseHeaders[h];
+          });
+          res.set(responseHeaders);
+          // Not sure if incoming data is a valid JSON or not:
+          var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
+          if (!isObject) {
+            res.status(response.statusCode).send({ result: data.toString()});
+          } else {
+            res.status(response.statusCode).send(data);
+          }
+          res.end();
+          log.verbose("", "Request ended with a HTTP %d", response.statusCode);
+          client.unregisterMethod(uniqueMethod);
         });
-        res.set(responseHeaders);
-        // Not sure if incoming data is a valid JSON or not:
-        var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
-        if (!isObject) {
-          res.status(response.statusCode).send({ result: data.toString()});
-        } else {
-          res.status(response.statusCode).send(data);
-        }
-        res.end();
-        log.verbose("", "Request ended with a HTTP %d", response.statusCode);
-        client.unregisterMethod(uniqueMethod);
-      });
+      } catch (e) {
+        console.log("***e");
+        console.log(e);
+      }
     }
   }
 });
