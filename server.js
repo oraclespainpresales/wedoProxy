@@ -27,7 +27,8 @@ const WEDOTARGET          = 'wedo-target'
 
 // Response headers blacklist
 const HEADERS_BLCAKLIST = [
-  'transfer-encoding'
+  'transfer-encoding',
+  'content-length'
 ];
 
 log.stream = process.stdout;
