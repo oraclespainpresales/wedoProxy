@@ -213,9 +213,12 @@ router.use(function(req, res, next) {
           console.log("*++++++++++++++++");
 
           var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
+          console.log("1");
           if (!isObject) {
+            console.log("2");
             res.status(response.statusCode).send({ result: data.toString()});
           } else {
+            console.log("3");
             res.status(response.statusCode).send(data);
           }
           res.end();
