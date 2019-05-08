@@ -206,18 +206,11 @@ router.use(function(req, res, next) {
           });
           res.set(responseHeaders);
           // Not sure if incoming data is a valid JSON or not:
-
-          console.log("*++++++++++++++++");
-          console.log("RESPONSE:");
-          console.log(data);
-          console.log("*++++++++++++++++");
-
           var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
           var isArray  = (Object.getPrototypeOf( data ) === Array.prototype);
           if (!isObject && !isArray) {
             res.status(response.statusCode).send({ result: data.toString()});
           } else {
-            console.log(responseHeaders);
             res.status(response.statusCode).send(data);
           }
           res.end();
@@ -225,8 +218,8 @@ router.use(function(req, res, next) {
           client.unregisterMethod(uniqueMethod);
         });
       } catch (e) {
-        console.log("***e");
-        console.log(e);
+        log.error("", "ERROR");
+        log.error("", e);
       }
     }
   }
