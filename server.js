@@ -213,7 +213,7 @@ router.use(function(req, res, next) {
           console.log("*++++++++++++++++");
 
           var isObject = (Object.getPrototypeOf( data ) === Object.prototype);
-          var isArray  = (Array.getPrototypeOf( data ) === Array.prototype);
+          var isArray  = (Object.getPrototypeOf( data ) === Array.prototype);
           if (!isObject && !isArray) {
             res.status(response.statusCode).send({ result: data.toString()});
           } else {
